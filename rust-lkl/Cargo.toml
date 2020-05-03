@@ -1,0 +1,8 @@
+[package]
+name = "lkl"
+version = "0.1.0"
+authors = ["jack"]
+edition = "2018"
+
+[build-dependencies]
+num_cpus = "1.9"
