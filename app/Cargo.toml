@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 lkl = { path = "../rust-lkl" }
+libc = "*"
+errno = "0.2.5"
+paste = "0.1"
