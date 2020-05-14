@@ -1,7 +1,7 @@
 FROM rust:latest
 
 RUN apt-get update
-RUN apt-get install -y libfuse-dev libarchive-dev xfsprogs flex bison bc
+RUN apt-get install -y libfuse-dev libarchive-dev xfsprogs flex bison bc iptables-dev libnftnl-dev libmnl-dev
 
 # create a new empty shell project
 RUN USER=root cargo new --bin nf_simulator
@@ -11,6 +11,7 @@ WORKDIR /nf_simulator
 # COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 COPY ./rust-lkl ./rust-lkl
+COPY ./iptables ./iptables
 COPY ./app/Cargo.toml ./app/Cargo.toml
 COPY ./app/Cargo.lock ./app/Cargo.lock
 COPY ./dummy.rs ./app/src/main.rs

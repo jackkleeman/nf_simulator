@@ -4,10 +4,12 @@
 use std::marker;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
+use std::ffi::CStr;
 
 use libc;
 
 static USE_LIBC: AtomicBool = AtomicBool::new(true);
+static WRAPPING: AtomicBool = AtomicBool::new(false);
 
 pub fn switch_libc(switch: bool) {
     USE_LIBC.store(switch, Ordering::SeqCst);
@@ -17,8 +19,17 @@ pub fn with_libc() -> bool {
     USE_LIBC.load(Ordering::SeqCst)
 }
 
+pub fn switch_wrapping(switch: bool) {
+    WRAPPING.store(switch, Ordering::SeqCst);
+}
+
+pub fn with_wrapping() -> bool {
+    WRAPPING.load(Ordering::SeqCst)
+}
+
 extern "C" {
     fn lkl_syscall(no: libc::c_long, params: *const libc::c_long) -> libc::c_long;
+    fn lkl_strerror(no: libc::c_int) -> *const libc::c_char;
 }
 
 pub fn lkl_call(nr: libc::c_long, params: &[libc::c_long]) -> libc::c_long {
@@ -29,13 +40,42 @@ pub fn lkl_call(nr: libc::c_long, params: &[libc::c_long]) -> libc::c_long {
     if err >= 0 {
         return err;
     }
-    println!("err: {}", err);
+    let e_str = unsafe {_lkl_strerror(err as libc::c_int)};
+    eprintln!("err: {} with params {:?}", e_str, params);
     -1
+}
+
+unsafe fn _lkl_strerror(errnum: libc::c_int) -> String {
+    let cs = lkl_strerror(errnum);
+
+    return CStr::from_ptr(cs).to_str().unwrap().to_string();
+}
+
+macro_rules! wrapped {
+    (
+        $x:expr;
+    ) => (
+        wrapper::switch_wrapping(true);
+        $x;
+        wrapper::switch_wrapping(false);
+    )
 }
 
 macro_rules! wrap_syscall {
     (
         fn $name:ident($($n:ident: $t:ty),*) -> $ret:ty
+    ) => (
+        wrap_syscall_with! {
+            fn $name($($n: $t),*) -> $ret;
+            $name
+        }
+    )
+}
+
+macro_rules! wrap_syscall_with {
+    (
+        fn $name:ident($($n:ident: $t:ty),*) -> $ret:ty;
+        $nr:ident
     ) => (
         paste::item! {
             #[allow(bad_style)]
@@ -49,11 +89,12 @@ macro_rules! wrap_syscall {
     #[no_mangle]
     unsafe extern "C" fn $name($($n: $t),*) -> $ret {
         let l = wrapper::with_libc();
-        println!("call to {} with libc: {}", stringify!($name), l);
+        let w = wrapper::with_wrapping();
 
-        if !l {
+        if w && !l {
+            eprintln!("lkl call to {}", stringify!($name));
             paste::expr! {
-                return wrapper::lkl_call([<__NR_ $name>] as libc::c_long, &[$($n as libc::c_long),*][..]) as $ret;
+                return wrapper::lkl_call([<__NR_ $nr>] as libc::c_long, &[$($n as libc::c_long),*][..]) as $ret;
             }
         }
         

@@ -2,5 +2,6 @@
 
 members = [
     "rust-lkl",
-    "app"
+    "app",
+    "iptables"
 ]
