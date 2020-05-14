@@ -23,12 +23,6 @@ fn main() {
     let libs_built = artefacts_built(out_dir_path.as_path());
 
     if !libs_built {
-        println!("RMDIR {:?}", out_dir);
-        Command::new(format!("rm",))
-            .args(&["-rf", out_dir.as_str()])
-            .status()
-            .unwrap();
-
         println!("MKDIR {:?}", out_dir);
         Command::new(format!("mkdir",))
             .args(&["-p", out_dir.as_str()])
@@ -56,7 +50,8 @@ fn main() {
             .status()
             .unwrap();
 
-        let options = vec!["--enable-static", "--disable-shared", "CFLAGS=-DDEBUG -ggdb3 -O0"];
+        let options = vec!["--enable-static", "--disable-shared"];
+        // let options = vec!["--enable-static", "--disable-shared", "CFLAGS=-DDEBUG -ggdb3 -O0"];
         Command::new("./configure")
             .args(options.as_slice())
             .current_dir(&Path::new(&out_dir))

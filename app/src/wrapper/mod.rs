@@ -92,7 +92,7 @@ macro_rules! wrap_syscall_with {
         let w = wrapper::with_wrapping();
 
         if w && !l {
-            eprintln!("lkl call to {}", stringify!($name));
+            // eprintln!("lkl call to {}", stringify!($name));
             paste::expr! {
                 return wrapper::lkl_call([<__NR_ $nr>] as libc::c_long, &[$($n as libc::c_long),*][..]) as $ret;
             }
